@@ -1,0 +1,28 @@
+name: Asset pack preparation
+on:
+  push:
+    branches: [asset-pack-20261015]
+    paths:
+      - '.github/workflows/asset-pack-20261015.yml'
+      - 'asset_pack/**'
+  workflow_dispatch:
+jobs:
+  download-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install --quiet requests pillow opencv-python-headless
+      - run: python asset_pack/collect.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: photos-300-landscapes-500-portraits
+          path: output/*.zip
+          if-no-files-found: warn
+          retention-days: 7
