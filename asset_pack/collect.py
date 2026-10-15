@@ -29,7 +29,8 @@ S.headers.update({"User-Agent": "OpenLicensedPhotoPack/1.0 (https://github.com/z
 random.seed(20261015)
 MW = "https://commons.wikimedia.org/w/api.php"
 BG_REPO = "Salford-PsyTech/Salford_Nature_Environments_Database"
-haar = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+haar = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml") if hasattr(cv2, "CascadeClassifier") else None
+print("cv2 face detection available:", bool(haar), "cv2 path:", getattr(cv2,"__file__", "?"), flush=True)
 stats = collections.Counter()
 
 def get(url, params=None, binary=False):
@@ -52,7 +53,7 @@ def make_jpg(blob, width, height, blackwhite=False, face=False):
     im = ImageOps.exif_transpose(im).convert("RGB")
     if im.width < 450 or im.height < 450:
         raise ValueError("too small")
-    if face:
+    if face and haar is not None:
         arr = np.array(im)
         scale = min(1.0, 960/max(im.size))
         sm = cv2.resize(arr, None, fx=scale, fy=scale) if scale < 1.0 else arr
@@ -149,7 +150,7 @@ def wikimedia_pages(category):
     visited = 0
     while visited < 30000:
         params = {"action":"query","format":"json","generator":"categorymembers","gcmtitle":"Category:"+category,
-            "gcmtype":"file","gcmlimit":50, "prop":"imageinfo","iiprop":"url|size|extmetadata",
+            "gcmtype":"file","gcmlimit":50, "prop":"imageinfo","iiprop":"url|size|extmetadata|mediatype",
             "iiurlwidth":900, "maxlag":5}
         params.update(cont)
         try:
@@ -187,7 +188,8 @@ def portraits():
             ii = item.get("imageinfo",[{}])[0]
             if not ii: continue
             mime = ii.get("mime","")
-            if mime not in ("image/jpeg","image/png","image/webp"): continue
+            if mime and mime not in ("image/jpeg","image/png","image/webp"): continue
+            if not title.lower().endswith((".jpg",".jpeg",".png",".webp")): continue
             if min(ii.get("width",0),ii.get("height",0)) < 600: continue
             if max(ii.get("width",0),ii.get("height",0)) > 16000: continue
             license_name = permitted_license(ii.get("extmetadata",{}))
