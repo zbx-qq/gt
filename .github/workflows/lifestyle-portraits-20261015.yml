@@ -1,0 +1,36 @@
+name: Natural lifestyle portrait pack
+on:
+  push:
+    branches: [asset-pack-20261015]
+    paths:
+      - '.github/workflows/lifestyle-portraits-20261015.yml'
+      - 'lifestyle_portraits_20261015.py'
+  workflow_dispatch:
+concurrency:
+  group: natural-lifestyle-portraits-20261015
+  cancel-in-progress: true
+jobs:
+  collect-lifestyle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 36
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --quiet requests pillow "numpy<2" "opencv-python-headless==4.10.0.84"
+      - name: Validate face detector
+        run: python -c "import cv2; assert hasattr(cv2,'CascadeClassifier') and not cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml').empty()"
+      - name: Collect candid portraits
+        run: python -u lifestyle_portraits_20261015.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: natural-lifestyle-portraits
+          path: |
+            output/*_lifestyle_color_portraits.zip
+            output/lifestyle_manifest.json
+          if-no-files-found: warn
+          retention-days: 7
